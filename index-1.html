@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0369a1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Simulador interactivo de circuitos RLC - Universidad de Oriente, Cuba. Desarrollado por Ing. José Vicet y Jiménez Matos">
+    <meta name="authors" content="Ing. José Vicet, Jiménez Matos">
+    <title>Simulador RLC - Universidad de Oriente</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- ==========================================
+         HEADER
+    ========================================== -->
+    <header class="app-header">
+        <div class="header-top">
+            <span>Universidad de Oriente · Núcleo de Anzoátegui · Cuba</span>
+            <span>v4.0.0</span>
+        </div>
+        <div class="header-main">
+            <div class="logo">⚡</div>
+            <div class="header-title">
+                <h1>Laboratorio de Circuitos RLC</h1>
+                <p>Análisis de Sistemas de Segundo Orden — Ingeniería en Telecomunicaciones</p>
+            </div>
+            <button class="header-menu-btn" onclick="toggleNav()" aria-label="Abrir menú">☰</button>
+        </div>
+        <nav class="desktop-nav" role="navigation" aria-label="Navegación principal">
+            <button class="btn btn-sm nav-active-btn">📊 Análisis</button>
+            <button class="btn btn-sm nav-disabled-btn" disabled data-tooltip="Próximamente">🎯 Diseño</button>
+            <button class="btn btn-sm nav-disabled-btn" disabled data-tooltip="Próximamente">⚖️ Comparar</button>
+        </nav>
+    </header>
+
+    <!-- ==========================================
+         NAVIGATION DRAWER (móvil)
+    ========================================== -->
+    <div class="nav-drawer" id="navDrawer" onclick="closeNavOnOverlay(event)"
+         role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="nav-content" onclick="event.stopPropagation()">
+            <button class="nav-close" onclick="toggleNav()" aria-label="Cerrar menú">✕</button>
+            <div class="nav-links">
+                <a href="#" class="nav-link active" onclick="selectNavLink(this, 'Análisis')">📊 Modo Análisis</a>
+                <a href="#" class="nav-link disabled" onclick="event.preventDefault()">🎯 Modo Diseño <span class="badge-soon">Próximamente</span></a>
+                <a href="#" class="nav-link disabled" onclick="event.preventDefault()">⚖️ Comparar Circuitos <span class="badge-soon">Próximamente</span></a>
+                <a href="#" class="nav-link" onclick="selectNavLink(this, 'Documentación')">📚 Documentación</a>
+                <a href="#" class="nav-link" onclick="selectNavLink(this, 'Configuración')">⚙️ Configuración</a>
+            </div>
+            <div class="nav-footer">
+                <div class="authors">Desarrollado por:</div>
+                <div>Ing. José Vicet</div>
+                <div>Jiménez Matos</div>
+                <div class="nav-institution">Universidad de Oriente, Cuba · © 2024</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MAIN CONTAINER
+    ========================================== -->
+    <main class="app-container">
+
+        <!-- Panel de Configuración -->
+        <aside class="config-panel">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">⚙️ Parámetros</div>
+                    <button class="btn btn-icon" onclick="resetAll()" data-tooltip="Restablecer valores por defecto">↺</button>
+                </div>
+                <div class="panel-body">
+
+                    <!-- Tabs -->
+                    <div class="tabs-container">
+                        <div class="tabs" role="tablist">
+                            <button class="tab active" onclick="switchTab(this, 'components')" role="tab" aria-selected="true">Componentes</button>
+                            <button class="tab" onclick="switchTab(this, 'signal')" role="tab" aria-selected="false">Señal</button>
+                            <button class="tab" onclick="switchTab(this, 'advanced')" role="tab" aria-selected="false">Avanzado</button>
+                        </div>
+                    </div>
+
+                    <!-- Presets -->
+                    <div class="presets-grid">
+                        <div class="preset-card active" id="preset-lpf" onclick="selectPreset(this, 'lpf')">
+                            <div class="preset-name">Filtro PB</div>
+                            <div class="preset-desc">Pasa-bajos</div>
+                        </div>
+                        <div class="preset-card" id="preset-hpf" onclick="selectPreset(this, 'hpf')">
+                            <div class="preset-name">Filtro PA</div>
+                            <div class="preset-desc">Pasa-altos</div>
+                        </div>
+                        <div class="preset-card" id="preset-bpf" onclick="selectPreset(this, 'bpf')">
+                            <div class="preset-name">Filtro PBanda</div>
+                            <div class="preset-desc">Pasa-banda</div>
+                        </div>
+                        <div class="preset-card" id="preset-notch" onclick="selectPreset(this, 'notch')">
+                            <div class="preset-name">Notch</div>
+                            <div class="preset-desc">Rechaza-banda</div>
+                        </div>
+                    </div>
+
+                    <!-- ── TAB: COMPONENTES ── -->
+                    <div id="tab-components" class="tab-panel">
+
+                        <div class="control-group">
+                            <div class="control-label"><span>Topología</span></div>
+                            <select id="topology" onchange="updateCircuit()">
+                                <option value="series">R-L-C Serie</option>
+                                <option value="parallel">R||L||C Paralelo</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-label">
+                                <span data-tooltip="Resistencia eléctrica que opone flujo de corriente">Resistencia (R)</span>
+                                <span class="control-value" id="val-R">100 Ω</span>
+                            </div>
+                            <div class="input-row">
+                                <input type="number" id="R" value="100" min="0.001" step="0.1"
+                                       oninput="updateValue('R')" aria-label="Valor de resistencia">
+                                <select id="unit-R" onchange="updateUnit('R')" data-unit="1">
+                                    <option value="1">Ω</option>
+                                    <option value="1000">kΩ</option>
+                                </select>
+                            </div>
+                            <div class="slider-control">
+                                <input type="range" id="slider-R" min="1" max="1000" value="100"
+                                       oninput="updateFromSlider('R', this.value)" aria-label="Slider resistencia">
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-label">
+                                <span data-tooltip="Inductancia — opone cambios en corriente">Inductancia (L)</span>
+                                <span class="control-value" id="val-L">10 mH</span>
+                            </div>
+                            <div class="input-row">
+                                <input type="number" id="L" value="10" min="0.001" step="0.001"
+                                       oninput="updateValue('L')" aria-label="Valor de inductancia">
+                                <select id="unit-L" onchange="updateUnit('L')" data-unit="0.001">
+                                    <option value="1e-6">µH</option>
+                                    <option value="0.001" selected>mH</option>
+                                    <option value="1">H</option>
+                                </select>
+                            </div>
+                            <div class="slider-control">
+                                <input type="range" id="slider-L" min="0.1" max="1000" value="10"
+                                       oninput="updateFromSlider('L', this.value)" aria-label="Slider inductancia">
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-label">
+                                <span data-tooltip="Capacitancia — almacena energía en campo eléctrico">Capacitancia (C)</span>
+                                <span class="control-value" id="val-C">10 µF</span>
+                            </div>
+                            <div class="input-row">
+                                <input type="number" id="C" value="10" min="0.001" step="0.001"
+                                       oninput="updateValue('C')" aria-label="Valor de capacitancia">
+                                <select id="unit-C" onchange="updateUnit('C')" data-unit="1e-6">
+                                    <option value="1e-12">pF</option>
+                                    <option value="1e-9">nF</option>
+                                    <option value="1e-6" selected>µF</option>
+                                    <option value="0.001">mF</option>
+                                    <option value="1">F</option>
+                                </select>
+                            </div>
+                            <div class="slider-control">
+                                <input type="range" id="slider-C" min="0.1" max="1000" value="10"
+                                       oninput="updateFromSlider('C', this.value)" aria-label="Slider capacitancia">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── TAB: SEÑAL ── -->
+                    <div id="tab-signal" class="tab-panel hidden">
+
+                        <div class="control-group">
+                            <div class="control-label"><span>Tipo de Excitación</span></div>
+                            <!-- FIX: Agregado botón "Cuadrada" faltante -->
+                            <div class="signal-types">
+                                <button class="signal-btn active" onclick="selectSignal('sine')"   id="btn-sine">Senoidal</button>
+                                <button class="signal-btn"        onclick="selectSignal('square')" id="btn-square">Cuadrada</button>
+                                <button class="signal-btn"        onclick="selectSignal('step')"   id="btn-step">Escalón</button>
+                                <button class="signal-btn"        onclick="selectSignal('impulse')"id="btn-impulse">Impulso</button>
+                            </div>
+                        </div>
+
+                        <!-- FIX: Slider de frecuencia logarítmico (0-100 → mapeo log) -->
+                        <div class="control-group">
+                            <div class="control-label">
+                                <span data-tooltip="Frecuencia de la señal de entrada">Frecuencia</span>
+                                <span class="control-value" id="val-freq">1.00 kHz</span>
+                            </div>
+                            <div class="input-row">
+                                <input type="number" id="freq" value="1" min="0.001" step="0.01"
+                                       oninput="updateValue('freq')" aria-label="Valor de frecuencia">
+                                <select id="unit-freq" onchange="updateUnit('freq')" data-unit="1000">
+                                    <option value="1">Hz</option>
+                                    <option value="1000" selected>kHz</option>
+                                    <option value="1e6">MHz</option>
+                                </select>
+                            </div>
+                            <div class="slider-control">
+                                <input type="range" id="slider-freq" min="0" max="100" value="50"
+                                       oninput="updateFreqFromLogSlider(this.value)" aria-label="Slider frecuencia (logarítmico)">
+                                <div class="slider-labels">
+                                    <span>1 Hz</span><span>1 kHz</span><span>1 MHz</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-label">
+                                <span data-tooltip="Amplitud pico de la señal">Amplitud</span>
+                                <span class="control-value" id="val-amp">10 V</span>
+                            </div>
+                            <div class="input-row">
+                                <input type="number" id="amp" value="10" min="0.001" step="0.1"
+                                       oninput="updateValue('amp')" aria-label="Valor de amplitud">
+                                <select id="unit-amp" onchange="updateUnit('amp')" data-unit="1">
+                                    <option value="0.001">mV</option>
+                                    <option value="1" selected>V</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── TAB: AVANZADO ── -->
+                    <div id="tab-advanced" class="tab-panel hidden">
+
+                        <div class="toggle-container">
+                            <div>
+                                <div class="toggle-label">Modelo Realista</div>
+                                <div class="toggle-desc">Incluir ESR y parásitos</div>
+                            </div>
+                            <div class="toggle-switch" id="parasitic-toggle" onclick="toggleParasitics()"></div>
+                        </div>
+
+                        <div id="parasitic-controls" class="hidden">
+                            <div class="control-group mt-sm">
+                                <div class="control-label">
+                                    <span data-tooltip="Equivalent Series Resistance del capacitor">ESR Capacitor</span>
+                                    <span class="control-value" id="val-esr-c">0.1 Ω</span>
+                                </div>
+                                <div class="input-row">
+                                    <input type="number" id="esr-c" value="0.1" min="0" step="0.01"
+                                           oninput="updateValue('esr-c')">
+                                    <select id="unit-esr-c" onchange="updateUnit('esr-c')" data-unit="1">
+                                        <option value="1">Ω</option>
+                                        <option value="1000">kΩ</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="control-group">
+                                <div class="control-label">
+                                    <span data-tooltip="Equivalent Series Inductance del capacitor">ESL Capacitor</span>
+                                    <span class="control-value" id="val-esl-c">10 nH</span>
+                                </div>
+                                <div class="input-row">
+                                    <input type="number" id="esl-c" value="10" min="0" step="0.1"
+                                           oninput="updateValue('esl-c')">
+                                    <select id="unit-esl-c" onchange="updateUnit('esl-c')" data-unit="1e-9">
+                                        <option value="1e-9" selected>nH</option>
+                                        <option value="1e-6">µH</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="control-group">
+                                <div class="control-label">
+                                    <span data-tooltip="Resistencia serie del inductor">ESR Inductor</span>
+                                    <span class="control-value" id="val-esr-l">0.5 Ω</span>
+                                </div>
+                                <div class="input-row">
+                                    <input type="number" id="esr-l" value="0.5" min="0" step="0.01"
+                                           oninput="updateValue('esr-l')">
+                                    <select id="unit-esr-l" onchange="updateUnit('esr-l')" data-unit="1">
+                                        <option value="1">Ω</option>
+                                        <option value="1000">kΩ</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="control-group mt-sm">
+                            <label class="checkbox-group" data-tooltip="Mostrar análisis de espectro de frecuencias">
+                                <input type="checkbox" id="show-fft" checked onchange="toggleFFT()">
+                                <span>Mostrar análisis FFT</span>
+                            </label>
+                        </div>
+
+                        <div class="control-group">
+                            <label class="checkbox-group" data-tooltip="Normalizar respuesta en frecuencia">
+                                <input type="checkbox" id="normalize" checked onchange="updateCircuit()">
+                                <span>Normalizar respuesta</span>
+                            </label>
+                        </div>
+                    </div>
+
+                </div><!-- /panel-body -->
+            </div><!-- /panel -->
+
+            <!-- Ecuaciones -->
+            <div class="panel mt-sm">
+                <div class="panel-header">
+                    <div class="panel-title">📐 Ecuaciones Fundamentales</div>
+                </div>
+                <div class="panel-body">
+                    <div class="equation-box"><strong>Z</strong> = R + j(ωL − 1/ωC)</div>
+                    <div class="equation-box"><strong>f₀</strong> = 1/(2π√LC)</div>
+                    <div class="equation-box" id="eq-Q"><strong>Q</strong> = (1/R)√(L/C)</div>
+                    <div class="equation-box"><strong>BW</strong> = f₀/Q = R/(2πL)</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Panel de Visualización -->
+        <section class="viz-panel">
+            <div class="tabs-container">
+                <div class="tabs" role="tablist">
+                    <button class="tab active" onclick="switchVizTab(this, 'time')"    role="tab" aria-selected="true">Temporal</button>
+                    <button class="tab"        onclick="switchVizTab(this, 'phasor')"  role="tab" aria-selected="false">Fasorial</button>
+                    <button class="tab"        onclick="switchVizTab(this, 'bode')"    role="tab" aria-selected="false">Bode</button>
+                    <button class="tab"        onclick="switchVizTab(this, 'nyquist')" role="tab" aria-selected="false">Nyquist</button>
+                    <button class="tab"        onclick="switchVizTab(this, 'fft')"     role="tab" aria-selected="false">Espectro FFT</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title" id="viz-title">📈 Respuesta Temporal</div>
+                    <div class="viz-toolbar-btns">
+                        <button class="btn btn-icon" onclick="zoomIn()"    data-tooltip="Acercar">+</button>
+                        <button class="btn btn-icon" onclick="zoomOut()"   data-tooltip="Alejar">−</button>
+                        <button class="btn btn-icon" onclick="zoomReset()" data-tooltip="Zoom 1:1">⊙</button>
+                        <button class="btn btn-icon" onclick="exportViz()" data-tooltip="Exportar">💾</button>
+                    </div>
+                </div>
+
+                <div class="viz-canvas-container" id="canvas-container">
+                    <canvas id="main-canvas"></canvas>
+                    <svg id="phasor-svg" class="hidden"
+                         viewBox="0 0 400 300" preserveAspectRatio="xMidYMid meet"
+                         aria-label="Diagrama fasorial">
+                        <defs>
+                            <marker id="ah-blue"   markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#0369a1"/></marker>
+                            <marker id="ah-green"  markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#059669"/></marker>
+                            <marker id="ah-red"    markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#dc2626"/></marker>
+                            <marker id="ah-purple" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#7c3aed"/></marker>
+                            <marker id="ah-amber"  markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#d97706"/></marker>
+                        </defs>
+                        <circle cx="200" cy="150" r="100" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="5,5"/>
+                        <line x1="50"  y1="150" x2="350" y2="150" stroke="#94a3b8" stroke-width="1.5"/>
+                        <line x1="200" y1="50"  x2="200" y2="250" stroke="#94a3b8" stroke-width="1.5"/>
+                        <text x="342" y="145" fill="#64748b" font-size="11" font-family="sans-serif">Re</text>
+                        <text x="207" y="62"  fill="#64748b" font-size="11" font-family="sans-serif">Im</text>
+                        <g id="phasor-group">
+                            <line id="ph-V"  x1="200" y1="150" x2="300" y2="150" stroke="#0369a1" stroke-width="3" marker-end="url(#ah-blue)"/>
+                            <line id="ph-I"  x1="200" y1="150" x2="200" y2="60"  stroke="#059669" stroke-width="3" marker-end="url(#ah-green)"/>
+                            <line id="ph-VR" x1="200" y1="150" x2="260" y2="150" stroke="#dc2626" stroke-width="2" marker-end="url(#ah-red)"/>
+                            <line id="ph-VL" x1="200" y1="150" x2="200" y2="80"  stroke="#7c3aed" stroke-width="2" marker-end="url(#ah-purple)"/>
+                            <line id="ph-VC" x1="200" y1="150" x2="200" y2="220" stroke="#d97706" stroke-width="2" marker-end="url(#ah-amber)"/>
+                        </g>
+                        <g id="phasor-legend" transform="translate(14,14)">
+                            <rect width="10" height="10" fill="#0369a1"/><text x="14" y="9" fill="#334155" font-size="10" font-family="sans-serif">V entrada</text>
+                            <rect y="14" width="10" height="10" fill="#059669"/><text x="14" y="23" fill="#334155" font-size="10" font-family="sans-serif">I corriente</text>
+                            <rect y="28" width="10" height="10" fill="#dc2626"/><text x="14" y="37" fill="#334155" font-size="10" font-family="sans-serif">V_R</text>
+                            <rect y="42" width="10" height="10" fill="#7c3aed"/><text x="14" y="51" fill="#334155" font-size="10" font-family="sans-serif">V_L</text>
+                            <rect y="56" width="10" height="10" fill="#d97706"/><text x="14" y="65" fill="#334155" font-size="10" font-family="sans-serif">V_C</text>
+                        </g>
+                    </svg>
+                </div>
+
+                <div class="panel-body viz-legend-row">
+                    <div class="viz-legend">
+                        <div class="legend-item"><div class="legend-dot" style="background:#0369a1;"></div><span>Entrada</span></div>
+                        <div class="legend-item"><div class="legend-dot" style="background:#059669;"></div><span>Salida</span></div>
+                        <div class="legend-item"><div class="legend-dot" style="background:#dc2626;"></div><span>Corriente</span></div>
+                    </div>
+                    <div id="zoom-indicator" class="zoom-indicator">Zoom: 1×</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Panel de Resultados -->
+        <aside class="results-panel">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">📊 Parámetros Calculados</div>
+                </div>
+                <div class="panel-body results-body">
+                    <div class="results-scroll">
+                        <div class="result-card highlight" id="card-f0">
+                            <div class="resonance-badge" id="resonance-indicator">⚡</div>
+                            <div class="result-label" data-tooltip="Frecuencia de resonancia natural">Frecuencia f₀</div>
+                            <div class="result-value" id="res-f0">15.9<span class="result-unit">kHz</span></div>
+                        </div>
+                        <div class="result-card" id="card-q">
+                            <div class="result-label" data-tooltip="Factor de calidad del circuito">Factor Q</div>
+                            <div class="result-value" id="res-Q">10.0</div>
+                        </div>
+                        <div class="result-card" id="card-bw">
+                            <div class="result-label" data-tooltip="Ancho de banda a −3 dB">Ancho BW</div>
+                            <div class="result-value" id="res-BW">1.59<span class="result-unit">kHz</span></div>
+                        </div>
+                        <div class="result-card" id="card-z">
+                            <div class="result-label" data-tooltip="Impedancia total del circuito">Impedancia |Z|</div>
+                            <div class="result-value" id="res-Z">100<span class="result-unit">Ω</span></div>
+                        </div>
+                        <div class="result-card" id="card-gain">
+                            <div class="result-label" data-tooltip="Ganancia de voltaje en dB">Ganancia</div>
+                            <div class="result-value" id="res-gain">0<span class="result-unit">dB</span></div>
+                        </div>
+                        <div class="result-card" id="card-phase">
+                            <div class="result-label" data-tooltip="Desplazamiento de fase">Fase φ</div>
+                            <div class="result-value" id="res-phase">0°</div>
+                        </div>
+                    </div>
+
+                    <div class="resonance-status-box" id="resonance-status">
+                        <div class="rs-icon rs-green">✓</div>
+                        <div>
+                            <div class="rs-title" style="color:var(--success)">En Resonancia</div>
+                            <div class="rs-sub">Máxima transferencia de potencia</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info del proyecto -->
+            <div class="panel mt-sm">
+                <div class="panel-header">
+                    <div class="panel-title">ℹ️ Información</div>
+                </div>
+                <div class="panel-body info-body">
+                    <p><strong>Desarrolladores:</strong><br>Ing. José Vicet<br>Jiménez Matos</p>
+                    <p><strong>Institución:</strong><br>Universidad de Oriente<br>Núcleo de Anzoátegui — Cuba</p>
+                    <p class="info-note">Herramienta desarrollada para el análisis de circuitos RLC en el dominio del tiempo y la frecuencia.</p>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Bottom Bar -->
+    <div class="bottom-bar">
+        <button class="btn btn-secondary" onclick="saveSimulation()">💾 Guardar</button>
+        <button class="btn btn-primary" id="btn-simulate" onclick="runSimulation()">▶ Simular</button>
+    </div>
+
+    <!-- Modal de Exportación -->
+    <div class="modal" id="exportModal" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Exportar Resultados</div>
+                <button class="btn btn-icon" onclick="closeModal()" aria-label="Cerrar">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="export-options">
+                    <button class="btn btn-secondary export-btn" onclick="exportData('csv')">📊 Exportar datos (CSV)</button>
+                    <button class="btn btn-secondary export-btn" onclick="exportData('png')">🖼️ Guardar imagen (PNG)</button>
+                    <button class="btn btn-secondary export-btn" onclick="exportData('pdf')">📄 Generar reporte PDF</button>
+                    <button class="btn btn-secondary export-btn" onclick="exportData('json')">🔧 Exportar configuración (JSON)</button>
+                    <button class="btn btn-secondary export-btn" onclick="exportData('ltspice')">⚡ Exportar LTspice (.asc)</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()" style="flex:1;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast" role="status" aria-live="polite">Mensaje</div>
+
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
