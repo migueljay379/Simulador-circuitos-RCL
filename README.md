@@ -1,5 +1,5 @@
 # Simulador de Circuitos RLC
-## Universidad de Oriente — Núcleo de Anzoátegui — Cuba
+## Universidad de Oriente — Cuba
 
 ---
 
